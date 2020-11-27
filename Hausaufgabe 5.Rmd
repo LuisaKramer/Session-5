@@ -40,8 +40,8 @@ wss <- (nrow(books_wide)-1)*sum(apply(books_wide,2,var))
 plot(1:10, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares")
 ```
-k = 3 Cluster
-Clustern der Leser aus dem Buch-Datenset: 
+#k = 3 Cluster
+#Clustern der Leser aus dem Buch-Datenset: 
 
 ```{r}
 k.means.fit <- kmeans(books_wide, 3) 
