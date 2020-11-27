@@ -1,0 +1,113 @@
+---
+title: "Beispiel-Notebook EDA / Data Science 5. Session"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(cluster)
+library(caret)
+```
+
+```{r}
+all <- read_csv("all.csv")
+```
+
+```{r}
+users_books <- all %>%
+  group_by(`Book-Title`) %>%
+  mutate(no_of_books = n()) %>%
+  filter(no_of_books > 49) %>%
+  filter(`Book-Rating` > 9) %>%
+  select(`User-ID`, `Book-Title`)
+```
+
+```{r}
+users_books <- users_books %>%
+  unique()
+books_wide <- users_books %>%
+  mutate(i = 1) %>%
+  spread(`Book-Title`,i,fill=0)
+```
+
+#Ellbogentest:
+```{r}
+wss <- (nrow(books_wide)-1)*sum(apply(books_wide,2,var))
+  for (i in 2:10) wss[i] <- sum(kmeans(books_wide,
+                                       centers=i)$withinss)
+plot(1:10, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+```
+k = 3 Cluster
+Clustern der Leser aus dem Buch-Datenset: 
+
+```{r}
+k.means.fit <- kmeans(books_wide, 3) 
+```
+
+```{r}
+k.means.fit$size
+```
+
+```{r}
+clusplot(books_wide, k.means.fit$cluster, color=TRUE, shade=TRUE,
+labels=4, lines=0, main="K-means cluster plot")
+```
+
+#Filtern einzelner Buchtitel und Anzeige, in welchen Clustern sie sich befinden und von wie vielen Lesern sie gelesen (1) bzw. nicht gelesen wurden (0)
+
+```{r}
+table(books_wide$`Harry Potter and the Chamber of Secrets (Book 2)`,k.means.fit$cluster)
+``` 
+
+```{r}
+clusterresult <- as.data.frame(cbind(books_wide$`User-ID`,k.means.fit$cluster))
+```
+
+#Ändern der Spaltennamen vor dem Zusammenführen der User_books und der Clusterergebnisse (clusterresult) in einen neuen Dataframe
+```{r} 
+colnames(clusterresult)[colnames(clusterresult) == "V1"] <- "User-ID"
+colnames(clusterresult)[colnames(clusterresult) == "V2"] <- "Cluster"
+```
+
+```{r}
+books <- clusterresult %>%
+  left_join(users_books)
+```
+
+```{r}
+books %>%
+  group_by(`Book-Title`)
+```
+
+```{r}
+books_cluster.dist <- dist(books, method="euclidean")
+books_wide.hc <- hclust(books_cluster.dist, method = "ward.D2")
+groups <- cutree(books_wide.hc, k=3) 
+```
+
+```{r} 
+colnames(books)[colnames(books) == "Book-Title"] <- "BookTitle"
+```
+
+#Welche Bücher gehören in welches Cluster:
+#Zusammenführen der Dopplungen der Buchtitel, sowie Anzeige eines Buchtitel mit Cluster pro Zeile:
+
+```{r}
+books_cluster <- books %>%
+  mutate(Cluster = groups) %>%
+  select(Cluster,BookTitle) %>%
+  group_by(BookTitle, Cluster) %>%
+  summarise()
+```
+#Sehr viele Buchtitel überschneiden sich in den Clustern, daher kann man bei diesem Datensatz leider nicht feststellen, welches eindeutige Merkmal die Cluster haben, z.B. Genre Drama, Krimi, etc. 
+#Erzeugen einer Tabelle, in dem alle Buchtitel und ihr Vorkommen in den jeweiligen Clustern übersichtlich dargestellt sind:
+
+```{r}
+books_widefinal <- books_cluster %>%
+  mutate(i = 1) %>%
+  spread(`Cluster`,i,fill=0)
+```
+
