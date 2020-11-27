@@ -1,5 +1,5 @@
 ---
-title: "Beispiel-Notebook EDA / Data Science 5. Session"
+title: "Data Science Hausaufgabe 5. Session"
 output:
   html_document:
     df_print: paged
